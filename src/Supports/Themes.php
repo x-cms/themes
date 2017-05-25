@@ -32,7 +32,7 @@ class Themes
      */
     protected $path;
     /**
-     * @var
+     * @var View
      */
     protected $viewFactory;
 
@@ -48,11 +48,13 @@ class Themes
         $this->config = $config;
         $this->files = $files;
         $this->viewFactory = $viewFactory;
+        $this->register();
     }
 
     /**
      * Register custom namespaces for all themes.
      *
+     * @return null
      */
     public function register()
     {
@@ -65,6 +67,7 @@ class Themes
      * Register custom namespaces for specified theme.
      *
      * @param string $theme
+     * @return null
      */
     public function registerNamespace($theme)
     {
@@ -79,7 +82,6 @@ class Themes
     public function all()
     {
         $themes = [];
-
         if ($this->files->exists($this->getPath())) {
             $scannedThemes = $this->files->directories($this->getPath());
             foreach ($scannedThemes as $theme) {
@@ -135,7 +137,6 @@ class Themes
     /**
      * Sets active theme.
      *
-     * @param $theme
      * @return Themes
      */
     public function setActive($theme)
@@ -157,7 +158,6 @@ class Themes
     /**
      * Sets theme layout.
      *
-     * @param $layout
      * @return Themes
      */
     public function setLayout($layout)
@@ -176,11 +176,7 @@ class Themes
     {
         $activeTheme = $this->getActive();
         $parent = $this->getProperty($activeTheme . '::parent');
-        $views = [
-            'theme' => $this->getThemeNamespace($view),
-            'parent' => $this->getThemeNamespace($view, $parent),
-            'base' => $view
-        ];
+        $views = ['theme' => $this->getThemeNamespace($view), 'parent' => $this->getThemeNamespace($view, $parent), 'module' => $this->getModuleView($view), 'base' => $view];
         foreach ($views as $view) {
             if ($this->viewFactory->exists($view)) {
                 return $view;
@@ -194,7 +190,7 @@ class Themes
      *
      * @param string $view
      * @param array $data
-     * @return \Illuminate\Contracts\View\View
+     * @return View
      */
     public function view($view, $data = array())
     {
@@ -222,7 +218,7 @@ class Themes
      * @param  array $data
      * @param  int $status
      * @param  array $headers
-     * @return Response
+     * @return \Symfony\Component\HttpFoundation\Response
      */
     public function response($view, $data = array(), $status = 200, array $headers = array())
     {
@@ -262,8 +258,7 @@ class Themes
     {
         $theme = strtolower($theme);
         $default = [];
-        if (!$this->exists($theme))
-            return $default;
+        if (!$this->exists($theme)) return $default;
         $path = $this->getJsonPath($theme);
         if ($this->files->exists($path)) {
             $contents = $this->files->get($path);
@@ -326,7 +321,6 @@ class Themes
      * Generate a HTML link to the given asset using HTTP for the
      * currently active theme.
      *
-     * @param $asset
      * @return string
      */
     public function asset($asset)
@@ -338,17 +332,13 @@ class Themes
         } else {
             $asset = $segments[0];
         }
-        return url($this->config->get('themes.paths.base') . '/'
-            . ($theme ?: $this->getActive()) . '/'
-            . $this->config->get('themes.paths.assets') . '/'
-            . $asset);
+        return url($this->config->get('themes.paths.base') . '/' . ($theme ?: $this->getActive()) . '/' . $this->config->get('themes.paths.assets') . '/' . $asset);
     }
 
     /**
      * Generate a HTML link to the given asset using HTTPS for the
      * currently active theme.
      *
-     * @param $asset
      * @return string
      */
     public function secureAsset($asset)
@@ -360,7 +350,6 @@ class Themes
      * Get the specified themes View namespace.
      *
      * @param string $key
-     * @param null $theme
      * @return string
      */
     protected function getThemeNamespace($key, $theme = null)
@@ -370,6 +359,25 @@ class Themes
         } else {
             return $theme . "::{$key}";
         }
+    }
+
+    /**
+     * Get module view file.
+     *
+     * @param  string $view
+     * @return null|string
+     */
+    protected function getModuleView($view)
+    {
+        if (class_exists('Xcms\Modules\Modules')) {
+            $viewSegments = explode('.', $view);
+            if ($viewSegments[0] == 'modules') {
+                $module = $viewSegments[1];
+                $view = implode('.', array_slice($viewSegments, 2));
+                return "{$module}::{$view}";
+            }
+        }
+        return null;
     }
 
 }
