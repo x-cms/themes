@@ -1,0 +1,10 @@
+{
+    "alias": "themes",
+    "name": "Themes",
+    "author": "xcms",
+    "description": "This is the description for the Themes module.",
+    "namespace": "Xcms\\Themes",
+    "version": "1.0",
+    "autoload": "psr-4",
+    "enabled": true
+}
